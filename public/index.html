@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Q&A Reward Platform</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <h1>🏆 Q&A Rewards</h1>
+            </div>
+            <div class="nav-menu">
+                <a href="javascript:void(0)" class="nav-link active" onclick="showSection('dashboard')">Home</a>
+                <a href="javascript:void(0)" class="nav-link" onclick="showSection('questions')">Questions</a>
+                <a href="javascript:void(0)" class="nav-link" onclick="showSection('leaderboard')">Leaderboard</a>
+            </div>
+            <div class="user-info" id="userInfo">
+                <span class="points-badge" id="userPoints">0 Points</span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container main-content">
+        <!-- Login Section -->
+        <section id="loginSection" class="section">
+            <div class="login-card">
+                <h2>Welcome!</h2>
+                <p>Select user to continue</p>
+                <select id="userSelect" class="form-control">
+                    <option value="">Loading...</option>
+                </select>
+                <button class="btn btn-primary" onclick="login()">Login</button>
+            </div>
+        </section>
+
+        <!-- Dashboard -->
+        <section id="dashboardSection" class="section hidden">
+            <h2>Your Dashboard</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">💰</div>
+                    <h3 id="totalPoints">0</h3>
+                    <p>Points</p>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">✍️</div>
+                    <h3 id="totalAnswers">0</h3>
+                    <p>Answers</p>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">👍</div>
+                    <h3 id="totalUpvotes">0</h3>
+                    <p>Upvotes</p>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🏅</div>
+                    <h3 id="totalBadges">0</h3>
+                    <p>Badges</p>
+                </div>
+            </div>
+            <div id="badgesContainer"></div>
+            <div style="margin-top: 2rem;">
+                <button class="btn btn-primary" onclick="showModal('transfer')">Transfer Points</button>
+                <button class="btn btn-primary" onclick="showSection('questions')" style="margin-left: 1rem;">View Questions</button>
+            </div>
+        </section>
+
+        <!-- Questions Section -->
+        <section id="questionsSection" class="section hidden">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h2>Questions</h2>
+                <button class="btn btn-primary" onclick="showModal('createQuestion')">Ask Question</button>
+            </div>
+            
+            <!-- Search Bar -->
+            <div style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                <input type="text" id="searchQuery" placeholder="Search questions..." class="form-control" style="margin-bottom: 0.5rem;">
+                <input type="text" id="searchTags" placeholder="Filter by tags (comma separated)" class="form-control" style="margin-bottom: 0.5rem;">
+                <button class="btn btn-primary" onclick="searchQuestions()">Search</button>
+                <button class="btn" onclick="loadQuestions()" style="margin-left: 0.5rem; background: #6c757d; color: white;">Clear</button>
+            </div>
+            
+            <div id="questionsList"></div>
+        </section>
+
+        <!-- Leaderboard -->
+        <section id="leaderboardSection" class="section hidden">
+            <h2>Top Users</h2>
+            <div id="leaderboardList"></div>
+        </section>
+    </div>
+
+    <!-- Modals -->
+    <div id="createQuestionModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('createQuestion')">&times;</span>
+            <h2>Ask Question</h2>
+            <input type="text" id="questionTitle" placeholder="Title" class="form-control">
+            <textarea id="questionContent" placeholder="Content" class="form-control"></textarea>
+            <input type="text" id="questionTags" placeholder="Tags (comma separated)" class="form-control">
+            <button class="btn btn-primary" onclick="createQuestion()">Post</button>
+        </div>
+    </div>
+
+    <div id="answerModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('answer')">&times;</span>
+            <h2>Your Answer</h2>
+            <textarea id="answerContent" placeholder="Write your answer..." class="form-control"></textarea>
+            <button class="btn btn-primary" onclick="submitAnswer()">Submit (+5 Points)</button>
+        </div>
+    </div>
+
+    <div id="transferModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('transfer')">&times;</span>
+            <h2>Transfer Points</h2>
+            <p style="color: #666; margin-bottom: 1rem;">Minimum 10 points required to transfer</p>
+            <select id="transferToUser" class="form-control"></select>
+            <input type="number" id="transferPoints" placeholder="Points to transfer" class="form-control" min="1">
+            <button class="btn btn-primary" onclick="transferPoints()">Transfer</button>
+        </div>
+    </div>
+
+    <div id="questionDetailsModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('questionDetails')">&times;</span>
+            <div class="modal-body"></div>
+        </div>
+    </div>
+
+    <script src="/app.js"></script>
+</body>
+</html>
