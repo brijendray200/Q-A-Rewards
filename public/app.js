@@ -41,15 +41,51 @@ async function loadUsers() {
     try {
         const users = await apiCall('/leaderboard/top-users?limit=100');
         const select = document.getElementById('userSelect');
+        if (!users || users.length === 0) {
+            select.innerHTML = '<option value="">No users yet - Register below!</option>';
+            return;
+        }
         select.innerHTML = '<option value="">Select a user</option>';
         users.forEach(user => {
             const option = document.createElement('option');
             option.value = user._id;
-            option.textContent = `${user.username} (${user.points} points)`;
+            option.textContent = `${user.username} (${user.points} pts)`;
             select.appendChild(option);
         });
     } catch (error) {
         console.error('Error loading users:', error);
+    }
+}
+
+// Register new user
+async function register() {
+    const username = document.getElementById('regUsername').value.trim();
+    const email = document.getElementById('regEmail').value.trim();
+
+    if (!username || !email) {
+        alert('Please enter username and email');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, email })
+        });
+        const user = await response.json();
+        if (!response.ok) throw new Error(user.error);
+
+        currentUser = user;
+        document.getElementById('loginSection').classList.add('hidden');
+        document.getElementById('dashboardSection').classList.remove('hidden');
+        document.getElementById('userPoints').textContent = `${user.points} Points`;
+        document.getElementById('regUsername').value = '';
+        document.getElementById('regEmail').value = '';
+        loadDashboard();
+        alert(`Welcome ${user.username}! 🎉`);
+    } catch (error) {
+        alert('Register failed: ' + error.message);
     }
 }
 

@@ -7,6 +7,7 @@ const app = express();
 const rewardRoutes = require('./routes/rewards');
 const questionRoutes = require('./routes/questions');
 const leaderboardRoutes = require('./routes/leaderboard');
+const authRoutes = require('./routes/auth');
 const { authenticate } = require('./middleware/auth');
 const errorHandler = require('./middleware/errorHandler');
 const rateLimiter = require('./middleware/rateLimiter');
@@ -18,6 +19,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(rateLimiter(100, 60000));
 
 // Routes
+app.use('/api/auth', authRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
 app.use('/api/rewards', authenticate, rewardRoutes);
 app.use('/api/questions', authenticate, questionRoutes);

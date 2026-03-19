@@ -28,11 +28,16 @@
         <section id="loginSection" class="section">
             <div class="login-card">
                 <h2>Welcome!</h2>
-                <p>Select user to continue</p>
+                <p>Select user to continue or register new</p>
                 <select id="userSelect" class="form-control">
                     <option value="">Loading...</option>
                 </select>
-                <button class="btn btn-primary" onclick="login()">Login</button>
+                <button class="btn btn-primary" onclick="login()" style="width:100%; margin-top: 0.5rem;">Login</button>
+                <hr style="margin: 1.5rem 0;">
+                <p style="color: #666; margin-bottom: 0.5rem;">New user? Register here:</p>
+                <input type="text" id="regUsername" placeholder="Username" class="form-control">
+                <input type="email" id="regEmail" placeholder="Email" class="form-control">
+                <button class="btn btn-primary" onclick="register()" style="width:100%; margin-top: 0.5rem; background: linear-gradient(135deg, #11998e, #38ef7d);">Register</button>
             </div>
         </section>
 
