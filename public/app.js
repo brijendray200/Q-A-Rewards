@@ -4,6 +4,7 @@ let currentQuestionId = null;
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     loadUsers();
+    loadQuestions(); // Load questions on page load without login
 });
 
 // API Helper
@@ -158,23 +159,24 @@ function showSection(section) {
     if (section === 'dashboard') loadDashboard();
 }
 
-// Load Questions
+// Load Questions - works without login too
 async function loadQuestions() {
     try {
-        const questions = await apiCall('/questions');
+        const response = await fetch('/api/questions');
+        const questions = await response.json();
         const container = document.getElementById('questionsList');
-        
+
         if (!questions || questions.length === 0) {
-            container.innerHTML = '<p style="text-align: center; color: #666;">No questions yet. Be the first to ask!</p>';
+            container.innerHTML = '<p style="text-align: center; color: #666; padding: 2rem;">No questions yet. Login and be the first to ask!</p>';
             return;
         }
-        
+
         container.innerHTML = '';
         questions.forEach(q => {
-            const tagsHtml = q.tags && q.tags.length > 0 
-                ? q.tags.map(tag => `<span class="tag">${tag}</span>`).join('') 
+            const tagsHtml = q.tags && q.tags.length > 0
+                ? q.tags.map(tag => `<span class="tag">${tag}</span>`).join('')
                 : '';
-            
+
             container.innerHTML += `
                 <div class="question-card">
                     <h3>${q.title || 'Untitled'}</h3>
@@ -185,14 +187,17 @@ async function loadQuestions() {
                         <span>💬 ${q.answers?.length || 0} answers</span>
                         <span>By ${q.userId?.username || 'Unknown'}</span>
                     </div>
-                    <button class="btn btn-primary" onclick="viewQuestionDetails('${q._id}')">View Details</button>
-                    <button class="btn btn-primary" onclick="openAnswerModal('${q._id}')" style="margin-left: 0.5rem;">Answer (+5 Points)</button>
+                    ${currentUser ? `
+                        <button class="btn btn-primary" onclick="viewQuestionDetails('${q._id}')">View Details</button>
+                        <button class="btn btn-primary" onclick="openAnswerModal('${q._id}')" style="margin-left: 0.5rem;">Answer (+5 Points)</button>
+                    ` : `<p style="color: #888; font-size: 0.9rem;">Login to answer and earn points!</p>`}
                 </div>
             `;
         });
     } catch (error) {
         console.error('Error loading questions:', error);
-        document.getElementById('questionsList').innerHTML = '<p style="color: red;">Error loading questions</p>';
+        const container = document.getElementById('questionsList');
+        if (container) container.innerHTML = '<p style="color: #888; text-align:center;">No questions yet!</p>';
     }
 }
 

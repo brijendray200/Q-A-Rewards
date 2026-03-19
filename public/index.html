@@ -74,12 +74,12 @@
         </section>
 
         <!-- Questions Section -->
-        <section id="questionsSection" class="section hidden">
+        <section id="questionsSection" class="section">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                 <h2>Questions</h2>
-                <button class="btn btn-primary" onclick="showModal('createQuestion')">Ask Question</button>
+                <button class="btn btn-primary" onclick="currentUser ? showModal('createQuestion') : alert('Please login first!')">Ask Question</button>
             </div>
-            
+
             <!-- Search Bar -->
             <div style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
                 <input type="text" id="searchQuery" placeholder="Search questions..." class="form-control" style="margin-bottom: 0.5rem;">
@@ -87,7 +87,7 @@
                 <button class="btn btn-primary" onclick="searchQuestions()">Search</button>
                 <button class="btn" onclick="loadQuestions()" style="margin-left: 0.5rem; background: #6c757d; color: white;">Clear</button>
             </div>
-            
+
             <div id="questionsList"></div>
         </section>
 
