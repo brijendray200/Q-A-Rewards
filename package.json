@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "A gamified Q&A platform with point-based rewards, badges, and leaderboard",
   "main": "server.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "keywords": [
     "qa-platform",
     "reward-system",
@@ -18,7 +21,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/rewardify-qa-platform.git"
+    "url": "https://github.com/brijendray200/Q-A-Rewards.git"
   },
   "scripts": {
     "start": "node server.js",

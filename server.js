@@ -15,18 +15,21 @@ const logger = require('./utils/logger');
 // Middleware
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(rateLimiter(100, 60000)); // 100 requests per minute
+app.use(rateLimiter(100, 60000));
 
 // Routes
 app.use('/api/leaderboard', leaderboardRoutes);
 app.use('/api/rewards', authenticate, rewardRoutes);
 app.use('/api/questions', authenticate, questionRoutes);
 
+// Health check for Render
+app.get('/health', (req, res) => res.json({ status: 'ok' }));
+
 // Error handler
 app.use(errorHandler);
 
 // Database connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/reward-system')
+mongoose.connect(process.env.MONGODB_URI)
   .then(() => {
     logger.info('Connected to MongoDB');
     console.log('Connected to MongoDB');
@@ -37,10 +40,9 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/reward-sy
   });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   logger.info(`Server started on port ${PORT}`);
   console.log(`Server running on port ${PORT}`);
-  console.log(`Frontend: http://localhost:${PORT}`);
 });
 
 module.exports = app;
