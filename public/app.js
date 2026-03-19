@@ -85,6 +85,10 @@ function showPage(page) {
     document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
     document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
     document.getElementById(page + 'Page').classList.remove('hidden');
+    // Set active nav link
+    const links = document.querySelectorAll('.nav-link');
+    const map = { dashboard: 0, questions: 1, leaderboard: 2 };
+    if (links[map[page]]) links[map[page]].classList.add('active');
     if (page === 'dashboard') loadDashboard();
     if (page === 'questions') loadQuestions();
     if (page === 'leaderboard') loadLeaderboard();
