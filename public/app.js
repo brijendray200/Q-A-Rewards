@@ -1,73 +1,57 @@
 let currentUser = null;
 let currentQuestionId = null;
 
-// Initialize
-document.addEventListener('DOMContentLoaded', () => {
-    loadUsers();
-    loadQuestions(); // Load questions on page load without login
-});
+document.addEventListener('DOMContentLoaded', () => { loadUsers(); });
 
-// API Helper
 async function apiCall(endpoint, method = 'GET', body = null) {
-    const options = {
-        method,
-        headers: {
-            'Content-Type': 'application/json'
-        }
-    };
-
-    if (currentUser) {
-        options.headers['x-user-id'] = currentUser._id;
-    }
-
-    if (body) {
-        options.body = JSON.stringify(body);
-    }
-
-    try {
-        const response = await fetch(`/api${endpoint}`, options);
-        const data = await response.json();
-        if (!response.ok) {
-            throw new Error(data.error || 'Request failed');
-        }
-        return data;
-    } catch (error) {
-        console.error('API Error:', error);
-        throw error;
-    }
+    const options = { method, headers: { 'Content-Type': 'application/json' } };
+    if (currentUser) options.headers['x-user-id'] = currentUser._id;
+    if (body) options.body = JSON.stringify(body);
+    const response = await fetch(`/api${endpoint}`, options);
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Request failed');
+    return data;
 }
 
-// Load users for login
+function switchTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
+    document.getElementById('loginTab').classList.toggle('hidden', tab !== 'login');
+    document.getElementById('registerTab').classList.toggle('hidden', tab !== 'register');
+}
+
 async function loadUsers() {
     try {
-        const users = await apiCall('/leaderboard/top-users?limit=100');
+        const response = await fetch('/api/leaderboard/top-users?limit=100');
+        const users = await response.json();
         const select = document.getElementById('userSelect');
         if (!users || users.length === 0) {
-            select.innerHTML = '<option value="">No users yet - Register below!</option>';
+            select.innerHTML = '<option value="">No users - Register below!</option>';
             return;
         }
-        select.innerHTML = '<option value="">Select a user</option>';
-        users.forEach(user => {
-            const option = document.createElement('option');
-            option.value = user._id;
-            option.textContent = `${user.username} (${user.points} pts)`;
-            select.appendChild(option);
+        select.innerHTML = '<option value="">-- Select your account --</option>';
+        users.forEach(u => {
+            const opt = document.createElement('option');
+            opt.value = u._id;
+            opt.textContent = `${u.username} (${u.points} pts)`;
+            select.appendChild(opt);
         });
-    } catch (error) {
-        console.error('Error loading users:', error);
-    }
+    } catch (e) { console.error(e); }
 }
 
-// Register new user
+async function login() {
+    const userId = document.getElementById('userSelect').value;
+    if (!userId) { alert('Please select a user'); return; }
+    try {
+        const user = await apiCall(`/rewards/profile/${userId}`);
+        setCurrentUser(user);
+    } catch (e) { alert('Login failed: ' + e.message); }
+}
+
 async function register() {
     const username = document.getElementById('regUsername').value.trim();
     const email = document.getElementById('regEmail').value.trim();
-
-    if (!username || !email) {
-        alert('Please enter username and email');
-        return;
-    }
-
+    if (!username || !email) { alert('Please fill all fields'); return; }
     try {
         const response = await fetch('/api/auth/register', {
             method: 'POST',
@@ -76,435 +60,251 @@ async function register() {
         });
         const user = await response.json();
         if (!response.ok) throw new Error(user.error);
-
-        currentUser = user;
-        document.getElementById('loginSection').classList.add('hidden');
-        document.getElementById('dashboardSection').classList.remove('hidden');
-        document.getElementById('userPoints').textContent = `${user.points} Points`;
-        document.getElementById('regUsername').value = '';
-        document.getElementById('regEmail').value = '';
-        loadDashboard();
-        alert(`Welcome ${user.username}! 🎉`);
-    } catch (error) {
-        alert('Register failed: ' + error.message);
-    }
+        setCurrentUser(user);
+        alert('Welcome ' + user.username + '! 🎉');
+    } catch (e) { alert('Register failed: ' + e.message); }
 }
 
-// Login
-async function login() {
-    const userId = document.getElementById('userSelect').value;
-    if (!userId) {
-        alert('Please select a user');
-        return;
-    }
-
-    try {
-        const user = await apiCall(`/rewards/profile/${userId}`);
-        currentUser = user;
-        document.getElementById('loginSection').classList.add('hidden');
-        document.getElementById('dashboardSection').classList.remove('hidden');
-        document.getElementById('userPoints').textContent = `${user.points} Points`;
-        loadDashboard();
-    } catch (error) {
-        alert('Login failed');
-    }
+function setCurrentUser(user) {
+    currentUser = user;
+    document.getElementById('loginPage').classList.add('hidden');
+    document.getElementById('mainApp').classList.remove('hidden');
+    document.getElementById('navPoints').textContent = user.points + ' Points';
+    document.getElementById('navUsername').textContent = user.username;
+    showPage('dashboard');
 }
 
-// Load Dashboard
+function logout() {
+    currentUser = null;
+    document.getElementById('mainApp').classList.add('hidden');
+    document.getElementById('loginPage').classList.remove('hidden');
+    loadUsers();
+}
+
+function showPage(page) {
+    document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+    document.getElementById(page + 'Page').classList.remove('hidden');
+    if (page === 'dashboard') loadDashboard();
+    if (page === 'questions') loadQuestions();
+    if (page === 'leaderboard') loadLeaderboard();
+}
+
 async function loadDashboard() {
     try {
-        const stats = await apiCall(`/leaderboard/user/${currentUser._id}/stats`);
-        document.getElementById('totalPoints').textContent = stats.user.points;
-        document.getElementById('totalAnswers').textContent = stats.stats.totalAnswers;
-        document.getElementById('totalUpvotes').textContent = stats.stats.totalUpvotes;
-        document.getElementById('totalBadges').textContent = stats.user.badges.length;
-
-        // Display badges
-        const badgesContainer = document.getElementById('badgesContainer');
+        const stats = await apiCall('/leaderboard/user/' + currentUser._id + '/stats');
+        document.getElementById('statPoints').textContent = stats.user.points;
+        document.getElementById('statAnswers').textContent = stats.stats.totalAnswers;
+        document.getElementById('statUpvotes').textContent = stats.stats.totalUpvotes;
+        document.getElementById('statBadges').textContent = stats.user.badges.length;
+        document.getElementById('navPoints').textContent = stats.user.points + ' Points';
+        currentUser.points = stats.user.points;
+        const bc = document.getElementById('badgesContainer');
         if (stats.user.badges && stats.user.badges.length > 0) {
-            badgesContainer.innerHTML = '<h3>Your Badges</h3><div class="badge-container">';
-            stats.user.badges.forEach(badge => {
-                badgesContainer.innerHTML += `
-                    <div class="badge">
-                        <div class="badge-icon">🏅</div>
-                        <strong>${badge.name}</strong>
-                    </div>
-                `;
-            });
-            badgesContainer.innerHTML += '</div>';
+            bc.innerHTML = '<div class="badges-section"><h3>🏅 Your Badges</h3><div class="badge-grid">' +
+                stats.user.badges.map(b => '<span class="badge-item">🏅 ' + b.name + '</span>').join('') +
+                '</div></div>';
         } else {
-            badgesContainer.innerHTML = '<p style="color: #666;">No badges yet. Keep answering questions!</p>';
+            bc.innerHTML = '<div class="badges-section"><p style="color:#888">No badges yet. Keep answering! 🎯</p></div>';
         }
-
-        // Load questions by default
-        loadQuestions();
-    } catch (error) {
-        console.error('Error loading dashboard:', error);
-        alert('Error loading dashboard: ' + error.message);
-    }
+    } catch (e) { console.error(e); }
 }
 
-// Show Section
-function showSection(section) {
-    // Update nav links
-    document.querySelectorAll('.nav-link').forEach(link => {
-        link.classList.remove('active');
-    });
-    
-    document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
-    document.getElementById(`${section}Section`).classList.remove('hidden');
-    
-    if (section === 'questions') loadQuestions();
-    if (section === 'leaderboard') loadLeaderboard();
-    if (section === 'dashboard') loadDashboard();
-}
-
-// Load Questions - works without login too
 async function loadQuestions() {
+    const container = document.getElementById('questionsList');
+    container.innerHTML = '<p style="color:#888;text-align:center;padding:2rem">Loading...</p>';
     try {
-        const response = await fetch('/api/questions');
-        const questions = await response.json();
-        const container = document.getElementById('questionsList');
-
-        if (!questions || questions.length === 0) {
-            container.innerHTML = '<p style="text-align: center; color: #666; padding: 2rem;">No questions yet. Login and be the first to ask!</p>';
-            return;
-        }
-
-        container.innerHTML = '';
-        questions.forEach(q => {
-            const tagsHtml = q.tags && q.tags.length > 0
-                ? q.tags.map(tag => `<span class="tag">${tag}</span>`).join('')
-                : '';
-
-            container.innerHTML += `
-                <div class="question-card">
-                    <h3>${q.title || 'Untitled'}</h3>
-                    <p>${q.content || ''}</p>
-                    <div class="tags">${tagsHtml}</div>
-                    <div class="question-meta">
-                        <span>👁️ ${q.views || 0} views</span>
-                        <span>💬 ${q.answers?.length || 0} answers</span>
-                        <span>By ${q.userId?.username || 'Unknown'}</span>
-                    </div>
-                    ${currentUser ? `
-                        <button class="btn btn-primary" onclick="viewQuestionDetails('${q._id}')">View Details</button>
-                        <button class="btn btn-primary" onclick="openAnswerModal('${q._id}')" style="margin-left: 0.5rem;">Answer (+5 Points)</button>
-                    ` : `<p style="color: #888; font-size: 0.9rem;">Login to answer and earn points!</p>`}
-                </div>
-            `;
-        });
-    } catch (error) {
-        console.error('Error loading questions:', error);
-        const container = document.getElementById('questionsList');
-        if (container) container.innerHTML = '<p style="color: #888; text-align:center;">No questions yet!</p>';
+        const questions = await apiCall('/questions');
+        renderQuestions(questions, container);
+    } catch (e) {
+        container.innerHTML = '<p style="color:#888;text-align:center;padding:2rem">No questions yet. Ask the first one!</p>';
     }
 }
 
-// Create Question
+function renderQuestions(questions, container) {
+    if (!questions || questions.length === 0) {
+        container.innerHTML = '<p style="color:#888;text-align:center;padding:2rem">No questions found.</p>';
+        return;
+    }
+    container.innerHTML = questions.map(q => `
+        <div class="question-card">
+            <h3>${q.title}</h3>
+            <p>${q.content}</p>
+            <div class="tags">${(q.tags || []).map(t => '<span class="tag">' + t + '</span>').join('')}</div>
+            <div class="question-meta">
+                <span>👁️ ${q.views || 0} views</span>
+                <span>💬 ${q.answers?.length || 0} answers</span>
+                <span>👤 ${q.userId?.username || 'Unknown'}</span>
+            </div>
+            <div class="card-actions">
+                <button class="btn btn-primary" onclick="viewQuestion('${q._id}')">View & Answer</button>
+            </div>
+        </div>`).join('');
+}
+
 async function createQuestion() {
-    const title = document.getElementById('questionTitle').value;
-    const content = document.getElementById('questionContent').value;
-    const tags = document.getElementById('questionTags').value.split(',').map(t => t.trim()).filter(t => t);
-
-    if (!title || title.length < 10) {
-        alert('Title must be at least 10 characters');
-        return;
-    }
-
-    if (!content || content.length < 20) {
-        alert('Content must be at least 20 characters');
-        return;
-    }
-
-    if (tags.length === 0) {
-        alert('Please add at least one tag');
-        return;
-    }
-
+    const title = document.getElementById('questionTitle').value.trim();
+    const content = document.getElementById('questionContent').value.trim();
+    const tags = document.getElementById('questionTags').value.split(',').map(t => t.trim()).filter(Boolean);
+    if (title.length < 10) { alert('Title must be at least 10 characters'); return; }
+    if (content.length < 20) { alert('Content must be at least 20 characters'); return; }
+    if (tags.length === 0) { alert('Add at least one tag'); return; }
     try {
         await apiCall('/questions', 'POST', { title, content, tags });
         closeModal('createQuestion');
-        alert('Question created successfully! 🎉');
         document.getElementById('questionTitle').value = '';
         document.getElementById('questionContent').value = '';
         document.getElementById('questionTags').value = '';
+        alert('Question posted! 🎉');
         loadQuestions();
-    } catch (error) {
-        alert('Error: ' + error.message);
+    } catch (e) { alert('Error: ' + e.message); }
+}
+
+async function searchQuestions() {
+    const q = document.getElementById('searchQuery').value;
+    const tags = document.getElementById('searchTags').value;
+    let endpoint = '/questions/search?';
+    if (q) endpoint += 'q=' + encodeURIComponent(q) + '&';
+    if (tags) endpoint += 'tags=' + encodeURIComponent(tags);
+    const container = document.getElementById('questionsList');
+    try {
+        const questions = await apiCall(endpoint);
+        renderQuestions(questions, container);
+    } catch (e) {
+        container.innerHTML = '<p style="color:#888;text-align:center">No results found.</p>';
     }
 }
 
-// Answer Modal
+async function viewQuestion(questionId) {
+    currentQuestionId = questionId;
+    try {
+        const q = await apiCall('/questions/' + questionId);
+        const answersHtml = q.answers && q.answers.length > 0
+            ? q.answers.map(a => `
+                <div class="answer-card">
+                    <p>${a.content}</p>
+                    <div class="answer-meta">
+                        <small>👤 ${a.userId?.username || 'Unknown'}</small>
+                        <div class="vote-buttons">
+                            <button class="btn-vote btn-upvote" onclick="upvoteAnswer('${a._id}','${questionId}')">👍 ${a.upvotes || 0}</button>
+                            <button class="btn-vote btn-downvote" onclick="downvoteAnswer('${a._id}','${questionId}')">👎 ${a.downvotes || 0}</button>
+                            ${a.userId?._id === currentUser._id ? '<button class="btn-vote btn-delete" onclick="deleteAnswer(\'' + a._id + '\',\'' + questionId + '\')">🗑️ Delete</button>' : ''}
+                        </div>
+                    </div>
+                </div>`).join('')
+            : '<p style="color:#888;padding:1rem 0">No answers yet. Be the first!</p>';
+
+        document.getElementById('questionDetailsBody').innerHTML = `
+            <h2 style="margin-bottom:0.5rem">${q.title}</h2>
+            <p style="color:#666;margin-bottom:1rem;line-height:1.6">${q.content}</p>
+            <div class="tags">${(q.tags || []).map(t => '<span class="tag">' + t + '</span>').join('')}</div>
+            <div class="question-meta" style="margin:0.8rem 0">
+                <span>👁️ ${q.views} views</span>
+                <span>👤 ${q.userId?.username || 'Unknown'}</span>
+            </div>
+            <button class="btn btn-primary" onclick="closeModal('questionDetails');openAnswerModal('${q._id}')">✍️ Answer This (+5 Points)</button>
+            <hr style="margin:1.5rem 0;border:none;border-top:2px solid #f0f0f0">
+            <h3 style="margin-bottom:1rem">💬 ${q.answers?.length || 0} Answers</h3>
+            ${answersHtml}`;
+        showModal('questionDetails');
+    } catch (e) { alert('Error: ' + e.message); }
+}
+
 function openAnswerModal(questionId) {
     currentQuestionId = questionId;
-    showModal('answer');
+    document.getElementById('answerModal').style.display = 'block';
 }
 
 async function submitAnswer() {
-    const content = document.getElementById('answerContent').value;
-    if (!content || content.trim().length < 10) {
-        alert('Answer must be at least 10 characters');
-        return;
-    }
-
+    const content = document.getElementById('answerContent').value.trim();
+    if (content.length < 10) { alert('Answer must be at least 10 characters'); return; }
     try {
-        await apiCall(`/questions/${currentQuestionId}/answers`, 'POST', { content });
+        await apiCall('/questions/' + currentQuestionId + '/answers', 'POST', { content });
         closeModal('answer');
-        alert('Answer submitted! You earned 5 points! 🎉');
         document.getElementById('answerContent').value = '';
-        
-        // Update points immediately
         currentUser.points += 5;
-        document.getElementById('userPoints').textContent = `${currentUser.points} Points`;
-        
+        document.getElementById('navPoints').textContent = currentUser.points + ' Points';
+        alert('Answer submitted! You earned 5 points! 🎉');
+        loadDashboard();
+    } catch (e) { alert('Error: ' + e.message); }
+}
+
+async function upvoteAnswer(answerId, questionId) {
+    try {
+        await apiCall('/rewards/answer/' + answerId + '/upvote', 'POST');
+        viewQuestion(questionId);
+    } catch (e) { alert('Error: ' + e.message); }
+}
+
+async function downvoteAnswer(answerId, questionId) {
+    try {
+        await apiCall('/rewards/answer/' + answerId + '/downvote', 'POST');
+        viewQuestion(questionId);
+    } catch (e) { alert('Error: ' + e.message); }
+}
+
+async function deleteAnswer(answerId, questionId) {
+    if (!confirm('Delete this answer? All earned points will be deducted!')) return;
+    try {
+        await apiCall('/rewards/answer/' + answerId, 'DELETE');
+        alert('Answer deleted. Points adjusted.');
+        closeModal('questionDetails');
         loadDashboard();
         loadQuestions();
-    } catch (error) {
-        alert('Error: ' + error.message);
-    }
+    } catch (e) { alert('Error: ' + e.message); }
 }
 
-// Load Leaderboard
-async function loadLeaderboard() {
-    try {
-        const users = await apiCall('/leaderboard/top-users?limit=20');
-        const container = document.getElementById('leaderboardList');
-        container.innerHTML = '';
-        
-        users.forEach((user, index) => {
-            const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '';
-            container.innerHTML += `
-                <div class="leaderboard-item">
-                    <div class="rank">${medal} #${index + 1}</div>
-                    <div>
-                        <strong>${user.username}</strong>
-                        <div style="color: #666; font-size: 0.9rem;">
-                            ${user.badges.length} badges
-                        </div>
-                    </div>
-                    <div class="points-badge">${user.points} Points</div>
-                </div>
-            `;
+async function showModal(name) {
+    if (name === 'transfer') {
+        const response = await fetch('/api/leaderboard/top-users?limit=100');
+        const users = await response.json();
+        const select = document.getElementById('transferToUser');
+        select.innerHTML = '<option value="">-- Select user --</option>';
+        users.filter(u => u._id !== currentUser._id).forEach(u => {
+            const opt = document.createElement('option');
+            opt.value = u._id;
+            opt.textContent = u.username + ' (' + u.points + ' pts)';
+            select.appendChild(opt);
         });
-    } catch (error) {
-        console.error('Error loading leaderboard:', error);
+        document.getElementById('transferBalance').textContent = 'Your balance: ' + currentUser.points + ' points';
     }
+    document.getElementById(name + 'Modal').style.display = 'block';
 }
 
-// Transfer Points
+function closeModal(name) {
+    document.getElementById(name + 'Modal').style.display = 'none';
+}
+
 async function transferPoints() {
     const toUserId = document.getElementById('transferToUser').value;
     const points = parseInt(document.getElementById('transferPoints').value);
-
-    if (!toUserId || !points) {
-        alert('Please fill all fields');
-        return;
-    }
-
-    if (currentUser.points < 10) {
-        alert('You need at least 10 points to transfer!');
-        return;
-    }
-
-    if (points > currentUser.points) {
-        alert('You don\'t have enough points!');
-        return;
-    }
-
+    if (!toUserId) { alert('Please select a user'); return; }
+    if (!points || points <= 0) { alert('Enter valid points'); return; }
+    if (currentUser.points < 10) { alert('You need at least 10 points to transfer!'); return; }
+    if (points > currentUser.points) { alert('Insufficient points!'); return; }
     try {
         await apiCall('/rewards/transfer', 'POST', { toUserId, points });
         closeModal('transfer');
-        alert('Points transferred successfully! 🎉');
-        
-        // Update current user points
-        currentUser.points -= points;
-        document.getElementById('userPoints').textContent = `${currentUser.points} Points`;
-        
+        document.getElementById('transferPoints').value = '';
+        alert(points + ' points transferred! 🎉');
         loadDashboard();
-    } catch (error) {
-        alert(error.message || 'Transfer failed');
-    }
+    } catch (e) { alert('Error: ' + e.message); }
 }
 
-// Modal Functions
-function showModal(modalName) {
-    document.getElementById(`${modalName}Modal`).style.display = 'block';
-    
-    if (modalName === 'transfer') {
-        loadUsersForTransfer();
-    }
-}
-
-function closeModal(modalName) {
-    document.getElementById(`${modalName}Modal`).style.display = 'none';
-}
-
-async function loadUsersForTransfer() {
-    const users = await apiCall('/leaderboard/top-users?limit=100');
-    const select = document.getElementById('transferToUser');
-    select.innerHTML = '<option value="">Select user</option>';
-    users.filter(u => u._id !== currentUser._id).forEach(user => {
-        const option = document.createElement('option');
-        option.value = user._id;
-        option.textContent = `${user.username} (${user.points} points)`;
-        select.appendChild(option);
-    });
-}
-
-// Close modal on outside click
-window.onclick = function(event) {
-    if (event.target.classList.contains('modal')) {
-        event.target.style.display = 'none';
-    }
-}
-
-
-// View Question Details with Answers
-async function viewQuestionDetails(questionId) {
+async function loadLeaderboard() {
     try {
-        const question = await apiCall(`/questions/${questionId}`);
-        showModal('questionDetails');
-        
-        const modal = document.getElementById('questionDetailsModal');
-        const content = modal.querySelector('.modal-body');
-        
-        let answersHtml = '';
-        if (question.answers && question.answers.length > 0) {
-            answersHtml = '<h3>Answers</h3>';
-            question.answers.forEach(answer => {
-                answersHtml += `
-                    <div class="answer-card">
-                        <p>${answer.content}</p>
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem;">
-                            <small>By ${answer.userId?.username || 'Unknown'}</small>
-                            <div class="vote-buttons">
-                                <button class="btn-vote btn-upvote" onclick="upvoteAnswer('${answer._id}')">
-                                    👍 ${answer.upvotes || 0}
-                                </button>
-                                <button class="btn-vote btn-downvote" onclick="downvoteAnswer('${answer._id}')">
-                                    👎 ${answer.downvotes || 0}
-                                </button>
-                                ${answer.userId?._id === currentUser._id ? 
-                                    `<button class="btn-vote" style="background: #ff9800;" onclick="deleteAnswer('${answer._id}')">🗑️ Delete</button>` 
-                                    : ''}
-                            </div>
-                        </div>
-                    </div>
-                `;
-            });
-        } else {
-            answersHtml = '<p style="color: #666;">No answers yet. Be the first to answer!</p>';
-        }
-        
-        content.innerHTML = `
-            <h2>${question.title}</h2>
-            <p>${question.content}</p>
-            <div class="tags">
-                ${question.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
-            </div>
-            <div class="question-meta" style="margin: 1rem 0;">
-                <span>👁️ ${question.views} views</span>
-                <span>By ${question.userId?.username || 'Unknown'}</span>
-            </div>
-            <button class="btn btn-primary" onclick="closeModal('questionDetails'); openAnswerModal('${question._id}')">
-                Answer This Question (+5 Points)
-            </button>
-            <hr style="margin: 1.5rem 0;">
-            ${answersHtml}
-        `;
-    } catch (error) {
-        alert('Error loading question details: ' + error.message);
-    }
-}
-
-// Upvote Answer
-async function upvoteAnswer(answerId) {
-    try {
-        await apiCall(`/rewards/answer/${answerId}/upvote`, 'POST');
-        alert('Answer upvoted! 👍');
-        // Reload current question details
-        const questionId = currentQuestionId;
-        if (questionId) {
-            viewQuestionDetails(questionId);
-        }
-    } catch (error) {
-        alert('Error: ' + error.message);
-    }
-}
-
-// Downvote Answer
-async function downvoteAnswer(answerId) {
-    try {
-        await apiCall(`/rewards/answer/${answerId}/downvote`, 'POST');
-        alert('Answer downvoted! 👎');
-        // Reload current question details
-        const questionId = currentQuestionId;
-        if (questionId) {
-            viewQuestionDetails(questionId);
-        }
-    } catch (error) {
-        alert('Error: ' + error.message);
-    }
-}
-
-// Delete Answer
-async function deleteAnswer(answerId) {
-    if (!confirm('Are you sure? All points earned from this answer will be deducted!')) {
-        return;
-    }
-    
-    try {
-        await apiCall(`/rewards/answer/${answerId}`, 'DELETE');
-        alert('Answer deleted! Points have been adjusted.');
-        loadDashboard();
-        closeModal('questionDetails');
-        loadQuestions();
-    } catch (error) {
-        alert('Error: ' + error.message);
-    }
-}
-
-// Search Questions
-async function searchQuestions() {
-    const query = document.getElementById('searchQuery').value;
-    const tags = document.getElementById('searchTags').value;
-    
-    try {
-        let endpoint = '/questions/search?';
-        if (query) endpoint += `q=${encodeURIComponent(query)}&`;
-        if (tags) endpoint += `tags=${encodeURIComponent(tags)}`;
-        
-        const questions = await apiCall(endpoint);
-        const container = document.getElementById('questionsList');
-        
-        if (!questions || questions.length === 0) {
-            container.innerHTML = '<p style="text-align: center; color: #666;">No questions found.</p>';
-            return;
-        }
-        
-        container.innerHTML = '';
-        questions.forEach(q => {
-            const tagsHtml = q.tags && q.tags.length > 0 
-                ? q.tags.map(tag => `<span class="tag">${tag}</span>`).join('') 
-                : '';
-            
-            container.innerHTML += `
-                <div class="question-card">
-                    <h3>${q.title || 'Untitled'}</h3>
-                    <p>${q.content || ''}</p>
-                    <div class="tags">${tagsHtml}</div>
-                    <div class="question-meta">
-                        <span>👁️ ${q.views || 0} views</span>
-                        <span>💬 ${q.answers?.length || 0} answers</span>
-                        <span>By ${q.userId?.username || 'Unknown'}</span>
-                    </div>
-                    <button class="btn btn-primary" onclick="viewQuestionDetails('${q._id}')">View Details</button>
-                    <button class="btn btn-primary" onclick="openAnswerModal('${q._id}')" style="margin-left: 0.5rem;">Answer (+5 Points)</button>
+        const users = await apiCall('/leaderboard/top-users?limit=20');
+        const medals = ['🥇', '🥈', '🥉'];
+        document.getElementById('leaderboardList').innerHTML = users.map((u, i) => `
+            <div class="leaderboard-item">
+                <div class="leaderboard-rank">${medals[i] || '#' + (i + 1)}</div>
+                <div class="leaderboard-info">
+                    <strong>${u.username}</strong>
+                    <small>${u.badges?.length || 0} badges</small>
                 </div>
-            `;
-        });
-    } catch (error) {
-        alert('Search failed: ' + error.message);
-    }
+                <span class="points-badge">${u.points} pts</span>
+            </div>`).join('');
+    } catch (e) { console.error(e); }
 }
+
+window.onclick = e => { if (e.target.classList.contains('modal')) e.target.style.display = 'none'; };

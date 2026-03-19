@@ -3,137 +3,163 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Q&A Reward Platform</title>
+    <title>Q&A Rewards</title>
     <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
-    <nav class="navbar">
-        <div class="container">
-            <div class="nav-brand">
-                <h1>🏆 Q&A Rewards</h1>
-            </div>
-            <div class="nav-menu">
-                <a href="javascript:void(0)" class="nav-link active" onclick="showSection('dashboard')">Home</a>
-                <a href="javascript:void(0)" class="nav-link" onclick="showSection('questions')">Questions</a>
-                <a href="javascript:void(0)" class="nav-link" onclick="showSection('leaderboard')">Leaderboard</a>
-            </div>
-            <div class="user-info" id="userInfo">
-                <span class="points-badge" id="userPoints">0 Points</span>
+
+    <!-- LOGIN PAGE - shown first -->
+    <div id="loginPage">
+        <div class="login-wrapper">
+            <div class="login-box">
+                <div class="login-logo">🏆</div>
+                <h1>Q&A Rewards</h1>
+                <p>Login to earn points, answer questions & win badges!</p>
+
+                <div class="tab-buttons">
+                    <button class="tab-btn active" onclick="switchTab('login')">Login</button>
+                    <button class="tab-btn" onclick="switchTab('register')">Register</button>
+                </div>
+
+                <!-- Login Tab -->
+                <div id="loginTab">
+                    <select id="userSelect" class="form-control">
+                        <option value="">Loading users...</option>
+                    </select>
+                    <button class="btn btn-primary full-width" onclick="login()">Login</button>
+                </div>
+
+                <!-- Register Tab -->
+                <div id="registerTab" class="hidden">
+                    <input type="text" id="regUsername" placeholder="Username" class="form-control">
+                    <input type="email" id="regEmail" placeholder="Email" class="form-control">
+                    <button class="btn btn-success full-width" onclick="register()">Create Account</button>
+                </div>
             </div>
         </div>
-    </nav>
-
-    <div class="container main-content">
-        <!-- Login Section -->
-        <section id="loginSection" class="section">
-            <div class="login-card">
-                <h2>Welcome!</h2>
-                <p>Select user to continue or register new</p>
-                <select id="userSelect" class="form-control">
-                    <option value="">Loading...</option>
-                </select>
-                <button class="btn btn-primary" onclick="login()" style="width:100%; margin-top: 0.5rem;">Login</button>
-                <hr style="margin: 1.5rem 0;">
-                <p style="color: #666; margin-bottom: 0.5rem;">New user? Register here:</p>
-                <input type="text" id="regUsername" placeholder="Username" class="form-control">
-                <input type="email" id="regEmail" placeholder="Email" class="form-control">
-                <button class="btn btn-primary" onclick="register()" style="width:100%; margin-top: 0.5rem; background: linear-gradient(135deg, #11998e, #38ef7d);">Register</button>
-            </div>
-        </section>
-
-        <!-- Dashboard -->
-        <section id="dashboardSection" class="section hidden">
-            <h2>Your Dashboard</h2>
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-icon">💰</div>
-                    <h3 id="totalPoints">0</h3>
-                    <p>Points</p>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">✍️</div>
-                    <h3 id="totalAnswers">0</h3>
-                    <p>Answers</p>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">👍</div>
-                    <h3 id="totalUpvotes">0</h3>
-                    <p>Upvotes</p>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">🏅</div>
-                    <h3 id="totalBadges">0</h3>
-                    <p>Badges</p>
-                </div>
-            </div>
-            <div id="badgesContainer"></div>
-            <div style="margin-top: 2rem;">
-                <button class="btn btn-primary" onclick="showModal('transfer')">Transfer Points</button>
-                <button class="btn btn-primary" onclick="showSection('questions')" style="margin-left: 1rem;">View Questions</button>
-            </div>
-        </section>
-
-        <!-- Questions Section -->
-        <section id="questionsSection" class="section">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                <h2>Questions</h2>
-                <button class="btn btn-primary" onclick="currentUser ? showModal('createQuestion') : alert('Please login first!')">Ask Question</button>
-            </div>
-
-            <!-- Search Bar -->
-            <div style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
-                <input type="text" id="searchQuery" placeholder="Search questions..." class="form-control" style="margin-bottom: 0.5rem;">
-                <input type="text" id="searchTags" placeholder="Filter by tags (comma separated)" class="form-control" style="margin-bottom: 0.5rem;">
-                <button class="btn btn-primary" onclick="searchQuestions()">Search</button>
-                <button class="btn" onclick="loadQuestions()" style="margin-left: 0.5rem; background: #6c757d; color: white;">Clear</button>
-            </div>
-
-            <div id="questionsList"></div>
-        </section>
-
-        <!-- Leaderboard -->
-        <section id="leaderboardSection" class="section hidden">
-            <h2>Top Users</h2>
-            <div id="leaderboardList"></div>
-        </section>
     </div>
 
-    <!-- Modals -->
+    <!-- MAIN APP - shown after login -->
+    <div id="mainApp" class="hidden">
+
+        <!-- Navbar -->
+        <nav class="navbar">
+            <div class="container nav-inner">
+                <div class="nav-brand">🏆 Q&A Rewards</div>
+                <div class="nav-menu">
+                    <a class="nav-link active" onclick="showPage('dashboard')">Home</a>
+                    <a class="nav-link" onclick="showPage('questions')">Questions</a>
+                    <a class="nav-link" onclick="showPage('leaderboard')">Leaderboard</a>
+                </div>
+                <div class="nav-right">
+                    <span class="points-badge" id="navPoints">0 Points</span>
+                    <span class="nav-username" id="navUsername"></span>
+                    <button class="btn-logout" onclick="logout()">Logout</button>
+                </div>
+            </div>
+        </nav>
+
+        <div class="container page-content">
+
+            <!-- DASHBOARD PAGE -->
+            <div id="dashboardPage" class="page">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">💰</div>
+                        <h3 id="statPoints">0</h3>
+                        <p>Points</p>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">✍️</div>
+                        <h3 id="statAnswers">0</h3>
+                        <p>Answers</p>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">👍</div>
+                        <h3 id="statUpvotes">0</h3>
+                        <p>Upvotes</p>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🏅</div>
+                        <h3 id="statBadges">0</h3>
+                        <p>Badges</p>
+                    </div>
+                </div>
+
+                <div id="badgesContainer"></div>
+
+                <div class="action-buttons">
+                    <button class="btn btn-primary" onclick="showModal('transfer')">💸 Transfer Points</button>
+                    <button class="btn btn-secondary" onclick="showPage('questions')">📋 View Questions</button>
+                </div>
+            </div>
+
+            <!-- QUESTIONS PAGE -->
+            <div id="questionsPage" class="page hidden">
+                <div class="page-header">
+                    <h2>Questions</h2>
+                    <button class="btn btn-primary" onclick="showModal('createQuestion')">+ Ask Question</button>
+                </div>
+
+                <div class="search-bar">
+                    <input type="text" id="searchQuery" placeholder="Search questions..." class="form-control">
+                    <input type="text" id="searchTags" placeholder="Filter by tags..." class="form-control">
+                    <button class="btn btn-primary" onclick="searchQuestions()">Search</button>
+                    <button class="btn btn-secondary" onclick="loadQuestions()">Clear</button>
+                </div>
+
+                <div id="questionsList"></div>
+            </div>
+
+            <!-- LEADERBOARD PAGE -->
+            <div id="leaderboardPage" class="page hidden">
+                <h2>🏆 Leaderboard</h2>
+                <div id="leaderboardList"></div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- MODALS -->
     <div id="createQuestionModal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closeModal('createQuestion')">&times;</span>
-            <h2>Ask Question</h2>
-            <input type="text" id="questionTitle" placeholder="Title" class="form-control">
-            <textarea id="questionContent" placeholder="Content" class="form-control"></textarea>
-            <input type="text" id="questionTags" placeholder="Tags (comma separated)" class="form-control">
-            <button class="btn btn-primary" onclick="createQuestion()">Post</button>
+            <h2>Ask a Question</h2>
+            <input type="text" id="questionTitle" placeholder="Title (min 10 chars)" class="form-control">
+            <textarea id="questionContent" placeholder="Describe your question (min 20 chars)" class="form-control"></textarea>
+            <input type="text" id="questionTags" placeholder="Tags (e.g. javascript, react)" class="form-control">
+            <button class="btn btn-primary full-width" onclick="createQuestion()">Post Question</button>
         </div>
     </div>
 
     <div id="answerModal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closeModal('answer')">&times;</span>
-            <h2>Your Answer</h2>
-            <textarea id="answerContent" placeholder="Write your answer..." class="form-control"></textarea>
-            <button class="btn btn-primary" onclick="submitAnswer()">Submit (+5 Points)</button>
+            <h2>Write Your Answer</h2>
+            <p class="reward-hint">🎉 You'll earn <strong>5 points</strong> for answering!</p>
+            <textarea id="answerContent" placeholder="Write a detailed answer (min 10 chars)" class="form-control"></textarea>
+            <button class="btn btn-primary full-width" onclick="submitAnswer()">Submit Answer (+5 Points)</button>
         </div>
     </div>
 
     <div id="transferModal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closeModal('transfer')">&times;</span>
-            <h2>Transfer Points</h2>
-            <p style="color: #666; margin-bottom: 1rem;">Minimum 10 points required to transfer</p>
+            <h2>💸 Transfer Points</h2>
+            <p class="reward-hint">⚠️ Minimum <strong>10 points</strong> required to transfer</p>
+            <label>Select User</label>
             <select id="transferToUser" class="form-control"></select>
-            <input type="number" id="transferPoints" placeholder="Points to transfer" class="form-control" min="1">
-            <button class="btn btn-primary" onclick="transferPoints()">Transfer</button>
+            <label>Points to Transfer</label>
+            <input type="number" id="transferPoints" placeholder="Enter points" class="form-control" min="1">
+            <p id="transferBalance" style="color:#666; font-size:0.9rem;"></p>
+            <button class="btn btn-primary full-width" onclick="transferPoints()">Transfer Points</button>
         </div>
     </div>
 
     <div id="questionDetailsModal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content modal-large">
             <span class="close" onclick="closeModal('questionDetails')">&times;</span>
-            <div class="modal-body"></div>
+            <div id="questionDetailsBody"></div>
         </div>
     </div>
 
